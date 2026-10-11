@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sunlight {
+  FULL_SUN
+  PARTIAL_SUN
+  SHADE
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  gardens   Garden[]
+}
+
+model Garden {
+  id             String       @id @default(cuid())
+  name           String
+  city           String
+  region         String?
+  country        String       @default("India")
+  spaceType      String       @default("BALCONY")
+  sunlight       Sunlight     @default(PARTIAL_SUN)
+  experience     String       @default("BEGINNER")
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gardenPlants   GardenPlant[]
+  careTasks      CareTask[]
+  observations   Observation[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([city, country])
+}
+
+model Plant {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  commonName    String
+  scientificName String?
+  description   String
+  seasonNotes   String
+  sunlight      Sunlight      @default(FULL_SUN)
+  wateringNotes String
+  difficulty    String        @default("EASY")
+  gardenPlants  GardenPlant[]
+  createdAt     DateTime      @default(now())
+}
+
+model GardenPlant {
+  id          String   @id @default(cuid())
+  gardenId    String
+  plantId     String
+  plantedAt   DateTime?
+  stage       String   @default("SEEDLING")
+  notes       String?
+  garden      Garden   @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([gardenId, plantId])
+}
+
+model CareTask {
+  id          String     @id @default(cuid())
+  gardenId    String
+  title       String
+  description String
+  dueDate     DateTime
+  status      TaskStatus @default(PENDING)
+  category    String
+  garden      Garden     @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+
+  @@index([gardenId, dueDate, status])
+}
+
+model Observation {
+  id          String   @id @default(cuid())
+  gardenId    String
+  plantName   String?
+  note        String
+  imageUrl    String?
+  observedAt  DateTime @default(now())
+  garden      Garden   @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+
+  @@index([gardenId, observedAt])
+}
